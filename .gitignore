@@ -1,4 +1,3 @@
 *.java
-./**/*
 node_modules
 report
