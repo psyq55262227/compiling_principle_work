@@ -1,0 +1,13 @@
+{
+  "name": "complier",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "serve": "ts-node ./ll1.ts"
+  },
+  "dependencies": {
+    "@types/node": "^18.11.10",
+    "typescript": "^4.9.3"
+  }
+}
