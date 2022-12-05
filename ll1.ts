@@ -1,6 +1,6 @@
 const startSymbol = 'E';
-const originProductions = ["E->TX", "X->ATX|ε", "T->FY", "Y->MFY|ε", "F->(E)|i", "A->+|-", "M->*|/"]
-const inputStr = "i+i*i#";
+const originProductions = ["E->TX", "X->ATX|ε", "T->FY", "Y->MFT|ε", "F->(E)|i", "A->+|-", "M->*|/"]
+const inputStr = "i++i*i#";
 let productions = new Map<string,string[]>();  // 产生式
 let FirstSet = new Map<string,Set<string>>(); // FIRST集
 let FirstSetForAny = new Map<string,Set<string>>(); // 生成任何符号串的FIRST
@@ -30,11 +30,8 @@ Stack.prototype.join = function(char){
 const solution = () => {
   if(!inputStr||inputStr.length===0)  return console.log('请输入字符串');
   divideChar();
+  isLL1();
   First();
-  VnSet.forEach((Vn:string)=>{
-    const VnProductions = productions.get(Vn);
-    VnProductions.forEach((s)=>getFirstForProduction(s))
-  });
   Follow();
   createTable();
   console.log(FirstSet);
@@ -76,12 +73,37 @@ const divideChar = () => {
 }
 
 /**
+ * 判断是否为ll1文法
+ */
+const isLL1 = () => {
+  productions.forEach((production,vn)=>{
+    let headSet = new Set();
+    production.forEach((item)=>{
+      // A -> AB
+      if(item[0]===vn){
+        console.error(`该文法非LL1文法，存在左递归：${vn}->${production}`);
+        process.exit();
+      }
+      if(headSet.has(item[0])){
+        console.error(`该文法非LL1文法，存在左公因式`);
+        process.exit();
+      }
+      headSet.add(item[0])
+    })
+  })
+}
+
+/**
  * 生成非终结符的FIRST集的递归入口
  */
 const First = () => {
   VnSet.forEach((Vn)=>{
     getFirst(Vn);
-  })
+  });
+  VnSet.forEach((Vn:string)=>{
+    const VnProductions = productions.get(Vn);
+    VnProductions.forEach((s)=>getFirstForProduction(s))
+  });
 }
 
 /**
@@ -103,6 +125,10 @@ const getFirst = (ch: string) => {
     let i = 0;
     while(i < rule.length){
       const tn = rule[i];
+      if(tn===ch){
+        console.error(`该文法非LL1文法，存在左递归：${ch}->${rule}`);
+        process.exit();
+      }
       // 递归求其first集
       getFirst(tn);
       const tvSet = FirstSet.get(tn)??new Set<string>();
@@ -137,7 +163,7 @@ const getFirstForProduction = (s: string) => {
     if(!FirstSet.has(tn)){
       getFirst(tn);
     }
-    const tvSet = FirstSet.get(tn);
+    const tvSet = FirstSet.get(tn)??new Set<string>();
     // 将非空first集加入左部
     tvSet.forEach((item)=>{
       if(item!==emptyChar){
@@ -162,10 +188,9 @@ const getFirstForProduction = (s: string) => {
  * 生成follow集
  */
 const Follow = () => {
-  // 看每个非终结符的follow集是否增加，不增加即可停止循环
-  // for(let i = 0 ; i < 3; i++){
+  for(let i = 0 ; i < 3; i++){
     VnSet.forEach((Vn)=>getFollow(Vn));
-  // }
+  }
 }
 
 /**
@@ -253,9 +278,6 @@ const createTable = () => {
       })
       if(set.has(emptyChar)){
         const followSet = FollowSet.get(vn);
-        if(followSet.has('#')){
-          insertIntoTable(vn,'#',production);
-        }
         followSet.forEach((item)=>{
           insertIntoTable(vn, item, production);
         })

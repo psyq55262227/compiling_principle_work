@@ -6,25 +6,47 @@ const pairing = {
   '-': ['-'],
   '=': ['='],
 }
-const otherOperator = ['*', '/']
-// 判定是否为字母
+
+const otherOperator = ['*', '/'];
+const allOperator = [...new Set([...Object.keys(pairing),...Object.values(pairing).flat(2),...otherOperator])]
+
+/**
+ * 判定是否为字母
+ * @param {string} ch 
+ * @returns 
+ */
 const isLetter = (ch) => {
   const test = new RegExp(/^[a-zA-Z]+$/)
   return test.test(ch)
 }
-// 判定是否为数字
+
+/**
+ * 判定是否为数字
+ * @param {string} num 
+ * @returns 
+ */
 const isNumber = (num) => {
   if (num === '0' || num === '0x') return true
   // const test = new RegExp(/^[0-9]+.?[0-9]*/)
   // return test.test(num)
   return /^-{0,1}\d*\.{0,1}\d+$/.test(num) || /0[xX][0-9a-fA-F]+/.test(num)
 }
-// 判断是否为分界符
+
+/**
+ * 判断是否为分界符
+ * @param {string} ch 
+ * @returns 
+ */
 const isSymbol = (ch) => {
   const symbol = ['(', ')', ',', ';', '<', '>', '{', '}', '[', ']']
   return symbol.findIndex((item) => item === ch)
 }
-// 判断是否为关键字
+
+/**
+ * 判断是否为关键字
+ * @param {string} word 
+ * @returns {number}
+ */
 const isKeyWord = (word) => {
   const keyWord = [
     'if',
@@ -42,19 +64,30 @@ const isKeyWord = (word) => {
   ]
   return keyWord.findIndex((item) => item === word)
 }
-// 判断输入的是否非法
+/**
+ * 判断输入的是否非法
+ * @param {*} programme 
+ * @param {*} i 
+ * @returns 
+ */
 const isWrong = (programme, i) => {
   if (isNumber(programme[i][0])) {
     // 判断是不是在产生式右边
     if (i > 0 && programme[i - 1][0] === '=') {
       return false
-    } else if (isLetter(programme[i][1]) || programme[i][1] === '_') {
-      return true
+    } else{
+      for(let j = 1 ; j < programme[i].length ; j++){
+        if (isLetter(programme[i][j]) || programme[i][j] === '_') {
+          return true
+        }
+      }
     }
   }
   return false
 }
-// 去掉多余的空格和换行和注释，并返回分割后的字符
+/**
+ * 去掉多余的空格和换行和注释，并返回分割后的字符
+ */ 
 const getWords = (programme) => {
   let temp = '',
     res = '',
@@ -97,6 +130,7 @@ const getIdentify = (program) => {
   let res = []
   if (program === '') return console.log('-------------------请输入程序')
   program = getWords(program)
+  console.table(program)
   for (let j = 0; j < program.length; j++) {
     let temp = program[j]
     if (isWrong(program, j)) {
@@ -111,7 +145,7 @@ const getIdentify = (program) => {
         let currentWord = ''
         while (
           i < temp.length &&
-          (isLetter(temp[i]) || isNumber(temp) || temp[i] === '_')
+          (isLetter(temp[i]) || isNumber(temp[i]) || temp[i] === '_')
         ) {
           currentWord += temp[i++]
         }
@@ -127,10 +161,6 @@ const getIdentify = (program) => {
           currentWord += temp[i] ? (temp[i] === ';' ? '' : temp[i]) : ''
         }
         i--
-        if (currentWord === '0x11ffll') {
-          console.log(`出现非预定义数字：${currentWord}，已为您强行退出程序`)
-          process.exit()
-        }
         res.push({ type: '数字', val: currentWord })
       } else if (Object.keys(pairing).some((e) => e === temp[i])) {
         if (
@@ -141,12 +171,18 @@ const getIdentify = (program) => {
           i++
         } else {
           res.push({ type: '运算符', val: temp[i] })
+          if(i + 1 < temp.length && allOperator.some((item)=>item===temp[i+1])){
+            console.table(res);
+            console.log(`${temp[i+1]}为非法标识符，已强制退出程序`)
+            process.exit()
+          }
         }
       } else if (otherOperator.some((e) => e === temp[i])) {
         res.push({ type: '运算符', val: temp[i] })
       } else if (isSymbol(temp[i]) !== -1) {
         res.push({ type: '分界符', val: temp[i] })
       } else {
+        console.table(res);
         console.log(`${temp[i]}为非法标识符，已强制退出程序`)
         process.exit()
       }
@@ -157,10 +193,8 @@ const getIdentify = (program) => {
 const solution = (program) => {
   const res = getIdentify(program)
   console.log('-------------------开始分析程序')
-  if (res) {
-    res.map(({ type, val }) => console.log(`<${type}, ${val}>`))
-    console.log('-------------------词法分析结果为：正确')
-  }
+  console.table(res);
+  console.log('-------------------词法分析结果为：正确')
 }
 solution(`int a;
 int main()
@@ -172,7 +206,7 @@ int main()
                /* e = 30; 
               */
 
-	if ( a> <0 ) 
+	if ( a><0 ) 
                {
 		return a;
 	}
@@ -180,22 +214,21 @@ int main()
 		return 0;
 	}
 }`)
-solution(`int a;
-int main()
-{
-	a = 10;
-                b = 0x11ff;
-                c = 027;
-                // d = 20;
-               /* e = 30; 
-              */
+// solution(`int a;
+// int main()
+// {
+// 	a = 10;
+//                 b = 1;
+//                 c = 027;
+//                 // d = 20;
+//                /* e = 30; 
+//               */
 
-	if ( a>0 ) 
-               {
-		return a;
-	}
-	else{
-		return 0;
-	}
-}`)
-export { getIdentify }
+// 	if ( a>0 ) 
+//                {
+// 		return a;
+// 	}
+// 	else{
+// 		return 0;
+// 	}
+// }`)
